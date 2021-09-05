@@ -1,0 +1,633 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Architecture &#8212; AmForth</title>
+    <link rel="stylesheet" href="../_static/amforth.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Compiler" href="Compiler.html" />
+    <link rel="prev" title="First Steps" href="FirstSteps.html" />
+    <link rel="stylesheet" href="../_static/shariff.min.css" type="text/css" />
+
+  </head><body>
+    <div class="header-wrapper">
+      <div class="header">
+        <div class="headertitle"><a
+          href="../index.html">AmForth</a></div>
+        <div class="rel">
+          <a href="http://sourceforge.net/p/amforth/community/HEAD/tree/" title="Community Repository"
+             accesskey="C">Community</a> |
+          <a href="/faq.html" title="FAQ"
+             accesskey="F">FAQ</a> |
+          <a href="/UG/amforth_user.html" title="User Guide"
+             accesskey="U">User Guide</a> |
+          <a href="/TG/TG.html" title="Technical Guide"
+             accesskey="T">Technical Guide</a> |
+          <a href="/TG/Cookbook.html" title="Recipes"
+             accesskey="R">Cookbook</a> |
+          <a href="http://sourceforge.net/projects/amforth/" title="Download"
+             accesskey="D">Download</a> |
+          <a href="/Opinion/Opinion.html" title="Opinion"
+             accesskey="O">Opinion</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="architecture">
+<h1>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>amforth is an indirect threading Forth. The dictionary is on
+a memory that allows execution of code. The RAM contains buffers,
+variables and the stacks. Depending on the platform, either the
+EEPROM or a special section of the flash is used for vital data
+such as pointers or configuration settings.</p>
+<p>The compiler is a classic compiler without any optimization
+support.</p>
+<p>Amforth uses all of the CPU registers internally: The
+data stack pointer, the instruction pointer, the user pointer, and
+the Top-Of-Stack cell. The hardware stack is used as the return
+stack. Some registers are used for temporary data in primitives.</p>
+</div>
+<div class="section" id="core-system">
+<h2>Core System<a class="headerlink" href="#core-system" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="threading-model">
+<h3>Threading Model<a class="headerlink" href="#threading-model" title="Permalink to this headline">¶</a></h3>
+<p>AmForth implements the classic indirect threaded variant of
+forth. The registers and their mappings are shown in table
+<a class="reference internal" href="AVR8.html#avr8-register-mappings"><span class="std std-ref">Register Mapping</span></a>.</p>
+</div>
+<div class="section" id="inner-interpreter">
+<span id="id1"></span><h3>Inner Interpreter<a class="headerlink" href="#inner-interpreter" title="Permalink to this headline">¶</a></h3>
+<p>For the indirect threading model an inner interpreter is
+needed. The inner interpreter does the interrupt handling too.
+It repeatedly reads the cell, the <strong class="command">IP</strong> points to, takes this number
+as the address for the next code segment and jumps to that code.
+It is expected that this code segment does a jump back to the
+inner interpreter (NEXT). The <strong class="command">IP</strong> is incremented by 1 just before
+the jumps are done to get the next cell.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Check_Interrupt
+W  &lt;- [IP]   ; read at IP
+IP &lt;- IP+1   ; advance IP
+X  &lt;- [W]    ; EXECUTE phase, W points to execution token
+JMP [X]      ; read execution token and execute its code
+</pre></div>
+</div>
+<div class="section" id="next">
+<h4>NEXT<a class="headerlink" href="#next" title="Permalink to this headline">¶</a></h4>
+<p>The NEXT routine is the core of the inner interpreter. It does the
+mapping between the execution tokens and the corresponding machine
+code. It consists of 4 steps which are executed for every forth word.</p>
+<p>The first step is to check whether an interrupt needs to
+be handled. In that case, the interrupt service is called first.</p>
+<p>The next step is to read the cell the <strong class="command">IP</strong> points to and
+stores this value in the W register. For a COLON word
+W contains the address of the code field.</p>
+<p>The 3rd step is to increase the <strong class="command">IP</strong> register by 1.</p>
+<p>The 4th step is the EXECUTE step.</p>
+</div>
+<div class="section" id="execute">
+<h4>EXECUTE<a class="headerlink" href="#execute" title="Permalink to this headline">¶</a></h4>
+<p>This operation is the JUMP.  It reads the content of the cell the
+<strong class="command">W</strong> register points to. The result is stored in a scratch pad
+register The data in it is the address of the machine code to be
+executed in the last step. This step is used by the forth command
+<strong class="command">EXECUTE</strong> too. The forth command does not get the address
+of the next destination from the current <strong class="command">IP</strong> but from the data stack.</p>
+<p>This last step finally jumps to the machine code pointed to
+by the scratch pad register.</p>
+</div>
+<div class="section" id="do-colon">
+<h4>DO COLON<a class="headerlink" href="#do-colon" title="Permalink to this headline">¶</a></h4>
+<p>DO COLON (aka NEST) is the subroutine call. It pushes the
+<strong class="command">IP</strong> onto the return stack. It then increments <strong class="command">W</strong>
+by one cell, so that it points to the body of the (colon) word,
+and sets <strong class="command">IP</strong> to that value. Then it continues with
+<strong class="command">NEXT</strong>, which begins executing the words in the body
+of the (parent) colon word. Note that <strong class="command">W</strong> points to
+the execution token of the current word, so the next cell points
+to the parameter field (body) of the forth word.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>push IP
+IP &lt;- W+1
+JMP NEXT
+</pre></div>
+</div>
+</div>
+<div class="section" id="exit">
+<h4>EXIT<a class="headerlink" href="#exit" title="Permalink to this headline">¶</a></h4>
+<p>The code for EXIT (aka UNNEST) is the return from a subroutine.
+It is defined in the forth word <strong class="command">EXIT</strong> in the dictionary.
+It reads the <strong class="command">IP</strong> from the return stack and jumps to NEXT.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>pop IP
+JMP NEXT
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="text-interpreter">
+<h2>Text Interpreter<a class="headerlink" href="#text-interpreter" title="Permalink to this headline">¶</a></h2>
+<p>The interpreter is a line based command interpreter. It based upon
+:<strong class="command">REFILL</strong> to acquire the next line of characters,
+located at a position <strong class="command">SOURCE</strong> points to. While processing
+the line, the pointer <strong class="command">&gt;IN</strong> is adjusted accordingly. Both
+words <strong class="command">REFILL</strong> and <strong class="command">SOURCE</strong> are USER based
+deferred words which allows to use any input source on a thread
+specific level. The interpreter itself does not use any static
+buffers or variables (<strong class="command">&gt;IN</strong> is a USER variable as well).</p>
+<p>A given string is handled by <strong class="command">INTERPRET</strong> which splits it
+into whitespace delimited words. Every word is processed using a
+list of recognizers. Processing ends either when the string end is
+reached or an exception occurs.</p>
+<div class="section" id="source-and-refill">
+<h3>SOURCE and REFILL<a class="headerlink" href="#source-and-refill" title="Permalink to this headline">¶</a></h3>
+<p><strong class="command">SOURCE</strong> provides an addr/len string pair that does not
+change during processing. The task of <strong class="command">REFILL</strong> is to fill
+the string buffer, <strong class="command">SOURCE</strong> points to when finished.</p>
+<p>There is one default input source: The terminal input buffer.
+This buffer gets filled with <strong class="command">REFILL-TIB</strong> that reads
+from the serial input buffers (<strong class="command">KEY</strong>). <strong class="command">SOURCE</strong>
+points to the Terminal Input Buffer itself. Another input source
+are plain strings, used by <strong class="command">EVALUATE</strong>.</p>
+</div>
+<div class="section" id="recognizer">
+<span id="recognizers"></span><h3>Recognizer<a class="headerlink" href="#recognizer" title="Permalink to this headline">¶</a></h3>
+<p>Recognizer are a part of the text (command) interpreter.
+They are responsible for analyzing a single word. The
+result consists of two elements: The actual data (if any)
+and an object like identifier connected with certain methods.</p>
+<div class="graphviz"><img src="../_images/graphviz-91645b2784300c0a5ab7934a91fa4fc9745ac63d.png" alt="digraph Recognizer {
+&quot;Interpret&quot; -&gt; &quot;Get Next Word&quot;
+&quot;Get Next Word&quot; -&gt; &quot;Recognize&quot; [label=&quot;Got one&quot;]
+&quot;Get Next Word&quot; -&gt; &quot;End&quot; [label=&quot;No More Words&quot;];
+&quot;Recognize&quot; -&gt; &quot;Check State&quot;
+&quot;Check State&quot; -&gt; &quot;Compile&quot; [label=&quot;Compile&quot;];
+&quot;Check State&quot; -&gt; &quot;Execute&quot; [label=&quot;Interpret&quot;];
+&quot;Compile&quot; -&gt; &quot;Get Next Word&quot;
+&quot;Execute&quot; -&gt; &quot;Get Next Word&quot;
+}" class="graphviz" /></div>
+<p>The Forth text interpreter reads from the input source
+and splits it into whitespace delimited words. Each word
+is fed into a list of actions which parse it. If the
+parsing is successful (e.g. it is a number or a word from
+the dictionary) the recognizer leaves the data and
+an method table to deal with it. Depending on the
+interpreter state one of the methods is executed to
+finally process the data. The first method is called
+in interpreter state. It is usually a noop, since
+the recognizer has done all the work already.</p>
+<p>The 2nd method is responsible to perform the compile
+time semantics. That usually means to write it into
+the dictioanary or to execute immediate words.</p>
+<p>The third method is used by :command`postpone` to compile the
+compilation semantics. It honors the immediate flags as well.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Recognize</span></code> is an iteration over a recognizer
+stack until the first parsing methods returns something
+different than <strong class="command">DT:NULL</strong>. If the recognizer stack is
+exhausted without a match, the <strong class="command">DT:NULL</strong> return value
+is generated. The string location that is passed to the
+parse actions is preserved and is restored for every iteration
+cycle.</p>
+<div class="graphviz"><img src="../_images/graphviz-b2a81ec7171b4f6e6abf085eea53ddac1e33456b.png" alt="digraph Recognize {
+&quot;Get Recognizer Stack&quot; -&gt; &quot;Rec-Stack Exhausted?&quot;
+&quot;Rec-Stack Exhausted?&quot; -&gt; &quot;RECTYPE-NULL&quot;  [label=&quot;Yes&quot;]
+&quot;Rec-Stack Exhausted?&quot; -&gt; &quot;Call Parse Action&quot;  [label=&quot;Consume Rec-TOS&quot;]
+&quot;Call Parse Action&quot; -&gt; &quot;Rec-Stack Exhausted?&quot; [label=&quot;RECTYPE-NULL&quot;]
+&quot;Call Parse Action&quot; -&gt; &quot;End&quot; [label=&quot;Success&quot;]
+&quot;RECTYPE-NULL&quot; -&gt; &quot;End&quot;
+}" class="graphviz" /></div>
+<p>A recognizer consists of a few words that work together.
+To ease maintenance, a naming convention is used: The
+recognizer itself is named with the prefix <code class="docutils literal notranslate"><span class="pre">rec-</span></code>. The
+method table name gets the prefix <code class="docutils literal notranslate"><span class="pre">rectype-</span></code> followed by
+the same name as the recognizer.</p>
+<p><strong class="command">POSTPONE</strong> serialises the parsed data as literals and
+adds the compile action from the method table. This an
+almost generic operation, it depends only on the number
+of cells from the parsing actions.</p>
+<div class="section" id="recognizer-stack">
+<h4>Recognizer Stack<a class="headerlink" href="#recognizer-stack" title="Permalink to this headline">¶</a></h4>
+<p>The interpreter uses a default stack of recognizers. It is managed
+with the words <strong class="command">get-recognizers</strong> and <strong class="command">set-recognizers</strong>.</p>
+<p>The entries in the list are called in order until the first
+one returns a different result but <strong class="command">RECTYPE-NULL</strong>. If the list
+is exhausted and no one succeeds, the <strong class="command">RECTYPE-NULL</strong> is delivered
+nevertheless and leads to the error reactions.</p>
+<p>The standard recognizer stack is defined as follows</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="kn">:</span> <span class="nc">default-recs</span>
+  <span class="k">[&#39;] </span><span class="nf">rec:intnum</span> <span class="k">[&#39;] </span><span class="nd">rec:word</span>
+  <span class="mi">2</span> <span class="nd">forth-recognizer set-recognizers</span>
+<span class="k">;</span>
+</pre></div>
+</div>
+<p>The standard word <strong class="command">marker</strong> resets the recognizer list as well.</p>
+</div>
+<div class="section" id="interpret">
+<h4>INTERPRET<a class="headerlink" href="#interpret" title="Permalink to this headline">¶</a></h4>
+<p>The interpreter is responsible to split the source into words
+and to call the recognizers. It also maintains the state.</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="kn">:</span> <span class="nc">interpret</span>
+  <span class="k">begin</span>
+    <span class="k">parse-name ?dup if drop exit then</span>
+    <span class="nd">forth-recognizer </span><span class="nf">recognize</span> <span class="c1">( addr len -- i*x r:table )</span>
+    <span class="k">state @ if </span><span class="nf">i-cell+</span> <span class="k">then </span><span class="c1">\ get compile time action</span>
+    <span class="no">@i </span><span class="k">execute </span><span class="nf">?stack</span>
+  <span class="k">again</span>
+<span class="k">;</span>
+</pre></div>
+</div>
+<p><strong class="command">recognize</strong> always returns a valid method table. If no
+recognizer succeeds, the <strong class="command">RECTYPE-NULL</strong> is returned with the
+addr/len of the unknown-to-handle word.</p>
+</div>
+<div class="section" id="api">
+<h4>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h4>
+<p>Every recognizer has a method table for the interpreter to handle
+the data and a word to check (and convert) whether a string matches
+the criteria for a certain data type.</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="c1">\ order is important!</span>
+<span class="k">:noname </span><span class="kt">...</span> <span class="k">; </span> <span class="c1">\ interpret action</span>
+<span class="k">:noname </span><span class="kt">...</span> <span class="k">; </span> <span class="c1">\ compile action</span>
+<span class="k">:noname </span><span class="kt">...</span> <span class="k">; </span> <span class="c1">\ postpone action</span>
+<span class="nf">rectype:</span> <span class="nf">rectype-foo</span>
+
+<span class="kn">:</span> <span class="nc">rec:foo</span> <span class="c1">( addr len -- i*x rectype-foo | RECTYPE-NULL )</span> <span class="kt">...</span> <span class="k">;</span>
+</pre></div>
+</div>
+<p>The word <strong class="command">rec-foo</strong> is the actual parsing action of the
+recognizer. It analyzes the string it gets. There are two results
+possible: Either the word is recognized and the address of the data
+token is returned or the NULL data token is used which is
+actually a predefined method table named <strong class="command">RECTYPE-NULL</strong>.</p>
+<p>The calling parameters to <strong class="command">rec-foo</strong> are the address and
+the length of a word in RAM. The recognizer must not change it.
+The result (i*x) is the parsed and converted data and the method
+table to deal with it.</p>
+<p>There is a standard method table that does not require
+additional data (i*x is empty) and which is used to communicate
+the “not-recognized” information: <strong class="command">RECTYPE-NULL</strong>. Its
+method table entries throw the exception -13 if called.</p>
+<p>Other pre-defined method tables are <strong class="command">rectype-num</strong> to deal
+with single cell numeric data, <strong class="command">rectype-dnum</strong> to work with
+double cell numerics and <strong class="command">rectype-xt</strong> to execute, compile
+and postpone execution tokens XT from the dictionary.</p>
+<p>The words in the method tables get the output of the recognizer
+as input on the data stack. They are excpected to consume them
+during their work.</p>
+</div>
+<div class="section" id="default-null">
+<h4>Default (NULL)<a class="headerlink" href="#default-null" title="Permalink to this headline">¶</a></h4>
+<p>This is a special system level recognizer. It is
+never called actually but its data token (RECTYPE-NULL)
+is used as both a error flag and for the final error
+actions. Its methods get the addr/len of a single
+word. They consume it by printing the string and
+throwing an exception when called. The effect is
+to get back to the command prompt if catched
+inside the <strong class="command">quit</strong> loop.</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="k">:noname type </span><span class="mi">-13</span> <span class="k">throw ; dup dup</span>
+<span class="nf">rectype:</span> <span class="nf">RECTYPE-NULL</span>
+
+<span class="c1">\ this definition is never called actually</span>
+<span class="kn">:</span> <span class="nc">rec-null</span> <span class="c1">( addr len -- rectype-null)</span>
+  <span class="k">2drop </span><span class="nf">rectype-null</span>
+<span class="k">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="number">
+<h4>NUMBER<a class="headerlink" href="#number" title="Permalink to this headline">¶</a></h4>
+<p>The number recognizer identifies numeric data in both
+single and double precision. Depending on the actual
+data width, two different data tokens are returned.</p>
+<p>The postpone action follows the standard definitions by
+not allowing to postpone numbers. Instead the number is
+printed and an exception is thrown.</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="nf">&#39;</span> <span class="no">noop</span>
+<span class="nf">&#39;</span> <span class="k">literal</span>
+<span class="k">:noname . </span><span class="mi">-48</span> <span class="k">throw ; </span><span class="c1">\ subject to disput</span>
+<span class="nd">recognizer: </span><span class="nf">rectype-num</span>
+
+<span class="nf">&#39;</span> <span class="no">noop</span>
+<span class="nf">&#39;</span> <span class="k">2literal</span>
+<span class="k">:noname d. </span><span class="mi">-48</span> <span class="k">throw ; </span><span class="c1">\ subject to dispute</span>
+<span class="nd">recognizer: </span><span class="nf">rectype-dnum</span>
+
+<span class="kn">:</span> <span class="nc">rec:intnum</span> <span class="c1">( addr len -- n rectype-num | d rectype-dnum | rectype-null )</span>
+  <span class="nf">number</span> <span class="k">if</span>
+   <span class="mi">1</span> <span class="nf">=</span> <span class="k">if </span><span class="nf">rectype-num</span> <span class="k">else </span><span class="nf">rectype-dnum</span> <span class="k">then</span>
+  <span class="k">else</span>
+    <span class="nf">rectype-null</span>
+  <span class="k">then</span>
+<span class="k">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="find">
+<h4>FIND<a class="headerlink" href="#find" title="Permalink to this headline">¶</a></h4>
+<p>This recognizer tries to find the word in the dictionary. If
+sucessful, the execution token and the flags are returned. The
+data token contains words to execute and correctly deal with
+immediate words for compiling and postponing.</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="c1">( XT flags -- )</span>
+<span class="k">:noname drop execute ;</span>
+<span class="k">:noname 0&gt; if compile, else execute then ;</span>
+<span class="k">:noname 0&gt; if postpone [compile] then , ;</span>
+<span class="nd">recognizer: </span><span class="nf">rectype-xt</span>
+
+<span class="kn">:</span> <span class="nc">rec-find</span> <span class="c1">( addr len -- XT flags rectype-xt | rectype-null )</span>
+  <span class="no">find-name </span><span class="k">?dup if</span>
+    <span class="nf">rectype-xt</span>
+  <span class="k">else</span>
+    <span class="nf">rectype-null</span>
+  <span class="k">then</span>
+<span class="k">;</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="multitasking">
+<h2>Multitasking<a class="headerlink" href="#multitasking" title="Permalink to this headline">¶</a></h2>
+<p>amforth does not implement multitasking directly. It
+provides the basic functionality however. Within IO
+words the deferred word <strong class="command">PAUSE</strong> is called
+whenever possible. This word is initialized to do
+nothing (<strong class="command">NOOP</strong>).</p>
+</div>
+<div class="section" id="exceptions">
+<span id="exceptiontable"></span><h2>Exceptions<a class="headerlink" href="#exceptions" title="Permalink to this headline">¶</a></h2>
+<p>Amforth uses and supports exceptions as specified in the
+ANS wordset. It provides the <strong class="command">CATCH</strong>
+and <strong class="command">THROW</strong> commands. The outermost catch
+frame is located at the interpreter level in the word
+<strong class="command">QUIT</strong>. If an exception with a negative value is
+catched, <strong class="command">QUIT</strong> will print a message with this
+number and and re-start itself. Positive values silently
+restart <strong class="command">QUIT</strong>.</p>
+<p>The next table lists the exceptions, amforth uses itself.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="45%" />
+<col width="32%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Exception</td>
+<td>Meaning</td>
+<td>Thrown in</td>
+</tr>
+<tr class="row-even"><td>-1</td>
+<td>silent abort</td>
+<td>ABORT</td>
+</tr>
+<tr class="row-odd"><td>-2</td>
+<td>abort with message</td>
+<td>ABORT”</td>
+</tr>
+<tr class="row-even"><td>-4</td>
+<td>stack underflow</td>
+<td>?STACK</td>
+</tr>
+<tr class="row-odd"><td>-13</td>
+<td>undefined word</td>
+<td>rec-notfound,
+tick</td>
+</tr>
+<tr class="row-even"><td>-16</td>
+<td>Invalid word</td>
+<td>(create)</td>
+</tr>
+<tr class="row-odd"><td>-50</td>
+<td>search order
+exhausted</td>
+<td>SET-ORDER</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="memory-allocation">
+<h2>Memory Allocation<a class="headerlink" href="#memory-allocation" title="Permalink to this headline">¶</a></h2>
+<p>The ANS 94 standard defines three major data regions: name space,
+code space and data space. The amforth system architecture
+maps these  memory types to the built-in ones: Flash, RAM and
+(if available) EEPROM. These three memory types have their own
+address space independently from the others. Amforth does not
+unify these address spaces into one.</p>
+<p>Amforth uses the flash memory as the location for all standard data
+spaces: name, code and data space. Contrary to the standard some
+words that should operate on the data space use RAM adresses instead.
+These words are HERE, &#64; (fetch), ! (store) and simimliar. Similiarly
+the so called transient regions are in RAM as well.</p>
+<p>Other words like , (comma) operate on the flash address and thus
+directly in the dictionary.</p>
+</div>
+<div class="section" id="user-area">
+<h2>User Area<a class="headerlink" href="#user-area" title="Permalink to this headline">¶</a></h2>
+<p>The User Area is a special RAM storage area. It
+contains the USER variables and the User deferred
+definitions. Access is based upon the value of the
+user pointer UP. It can be changed with the word
+<strong class="command">UP!</strong> and read with <strong class="command">UP&#64;</strong>
+. The UP itself is stored in a register pair.</p>
+<p>The size of the user area is determined by the size the system
+itself uses plus a configurable number at compile time. For self
+defined tasks this user supplied number can be changed for task
+local variables.</p>
+<p>The first USER area is located at the first data address
+(usually RAMSTART).</p>
+<table border="1" class="docutils" id="userarea">
+<colgroup>
+<col width="47%" />
+<col width="53%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Address offset (bytes)</td>
+<td>Purpose</td>
+</tr>
+<tr class="row-even"><td>0</td>
+<td>Multitasker Status</td>
+</tr>
+<tr class="row-odd"><td>2</td>
+<td>Multitasker Follower</td>
+</tr>
+<tr class="row-even"><td>4</td>
+<td>RP0</td>
+</tr>
+<tr class="row-odd"><td>6</td>
+<td>SP0</td>
+</tr>
+<tr class="row-even"><td>8</td>
+<td>SP (used by multitasker)</td>
+</tr>
+<tr class="row-odd"><td>10</td>
+<td>HANDLER (exception handling)</td>
+</tr>
+<tr class="row-even"><td>12</td>
+<td>BASE (number conversion)</td>
+</tr>
+</tbody>
+</table>
+<p>The AVR8 and MSP430 support deferred words based in the
+USER area.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="47%" />
+<col width="53%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>14</td>
+<td>EMIT (deferred)</td>
+</tr>
+<tr class="row-even"><td>16</td>
+<td>EMIT? (deferred)</td>
+</tr>
+<tr class="row-odd"><td>18</td>
+<td>KEY (deferred)</td>
+</tr>
+<tr class="row-even"><td>20</td>
+<td>KEY? (deferred)</td>
+</tr>
+<tr class="row-odd"><td>22</td>
+<td>SOURCE (deferred)</td>
+</tr>
+<tr class="row-even"><td>24</td>
+<td>&gt;IN</td>
+</tr>
+<tr class="row-odd"><td>26</td>
+<td>REFILL (deferred)</td>
+</tr>
+</tbody>
+</table>
+<p>The command line prompt can be changed with the following
+defers. More information is in the recipe <a class="reference internal" href="recipes/Prompts.html#prompts"><span class="std std-ref">Prompts</span></a></p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="47%" />
+<col width="53%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>28</td>
+<td>.OK  (deferred)</td>
+</tr>
+<tr class="row-even"><td>30</td>
+<td>.ERROR (deferred)</td>
+</tr>
+<tr class="row-odd"><td>32</td>
+<td>.READY (deferred)</td>
+</tr>
+<tr class="row-even"><td>34</td>
+<td>.INPUT (deferred)</td>
+</tr>
+</tbody>
+</table>
+<p>The User Area is used to provide task local
+information. Without an active multitasker it
+contains the starting values for the stackpointers,
+the deferred words for terminal IO, the BASE
+variable and the exception handler.</p>
+<p>The multitasker uses the first 2 cells to store the
+status and the link to the next entry in the task
+list. In that situation the user area is/can be seen
+as the task control block.</p>
+<p>The size available to application programs is determined
+at compile time. This size is set to 0 initially, can be
+changed in the application master file.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          <h3>Table Of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../UG/amforth_user.html">User’s Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="TG.html">Technical Guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="FirstSteps.html">First Steps</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Compiler.html">Compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Standards.html">Standard Wordlists</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware.html">Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Sources.html">Source Organization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Tools.html">Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Cookbook.html">Cookbook</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Opinion/Opinion.html">Opinion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Recognizers.html">Recognizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="refcard.html">Reference Card (outdated! from release 5.5)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">History</a></li>
+</ul>
+
+          <h3 style="margin-top: 1.5em;">Search</h3>
+          <form class="search" action="../search.html" method="get">
+            <input type="text" name="q" />
+            <input type="submit" value="Go" />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+          </form>
+          <p class="searchtip" style="font-size: 90%">
+            Enter search terms or a module, class or function name.
+          </p>
+          <div class="shariff" data-lang="en" data-theme="white" data-backend-url="../_static/shariff"></div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+            <a href="../_sources/TG/Architecture.rst.txt"
+               rel="nofollow">Show Source</a>
+        </div>
+
+
+        <div>
+<a href="mailto:amforth-devel@lists.sourceforge.net">amforth-devel@lists.sourceforge.net</a>
+        </div>
+        <div class="clearer"></div>
+
+        <div class="right">Hosted by <a
+    href="http://sourceforge.net/projects/amforth">
+    <img src="http://sflogo.sourceforge.net/sflogo.php?group_id=179967&type=10"
+    width="80" height="15" border="0"
+    alt="Get amforth: Forth for AVR ATmega at SourceForge.net." />
+    </a>
+        </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <script src="/_static/shariff.complete.js"></script>
+
+  </body>
+</html>

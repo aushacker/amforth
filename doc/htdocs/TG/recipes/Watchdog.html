@@ -1,0 +1,338 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Watchdog &#8212; AmForth</title>
+    <link rel="stylesheet" href="../../_static/amforth.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Hardware Modules (MSP430)" href="Hardware-MSP430.html" />
+    <link rel="prev" title="Usart Settings" href="Usart.html" />
+    <link rel="stylesheet" href="../../_static/shariff.min.css" type="text/css" />
+
+  </head><body>
+    <div class="header-wrapper">
+      <div class="header">
+        <div class="headertitle"><a
+          href="../../index.html">AmForth</a></div>
+        <div class="rel">
+          <a href="http://sourceforge.net/p/amforth/community/HEAD/tree/" title="Community Repository"
+             accesskey="C">Community</a> |
+          <a href="/faq.html" title="FAQ"
+             accesskey="F">FAQ</a> |
+          <a href="/UG/amforth_user.html" title="User Guide"
+             accesskey="U">User Guide</a> |
+          <a href="/TG/TG.html" title="Technical Guide"
+             accesskey="T">Technical Guide</a> |
+          <a href="/TG/Cookbook.html" title="Recipes"
+             accesskey="R">Cookbook</a> |
+          <a href="http://sourceforge.net/projects/amforth/" title="Download"
+             accesskey="D">Download</a> |
+          <a href="/Opinion/Opinion.html" title="Opinion"
+             accesskey="O">Opinion</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="watchdog">
+<span id="id1"></span><h1>Watchdog<a class="headerlink" href="#watchdog" title="Permalink to this headline">¶</a></h1>
+<p>The watchdog is a build-in module present in all atmega controllers. It
+triggers a reset if for a predefined period of time nothing is done to
+prevent it.</p>
+<p>The controller has a special machine instruction for the watchdog reset
+called <strong class="command">wdr</strong>. Amforth has a wrapper forth word with the same name after
+including the file <code class="file docutils literal notranslate"><span class="pre">wdr.asm</span></code>.</p>
+<p>This word needs to be called often enough to keep the watchdog from resetting
+the controller. For a system that basically waits at the command prompt the
+<strong class="command">pause</strong> command could be sufficient:</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="k">&gt; </span><span class="nf">&#39;</span> <span class="nf">wdr</span> <span class="k">is </span><span class="no">pause</span>
+</pre></div>
+</div>
+<div class="section" id="initialization">
+<h2>Initialization<a class="headerlink" href="#initialization" title="Permalink to this headline">¶</a></h2>
+<p>Early atmega variants need to initialize the watchdog every time after
+a reset, newer ones keep it active even over resets. This may cause troubles
+since the WDR needs to be called much earlier for these controllers.
+One solution is to place the WDR activation at the beginning of the
+turnkey actions.</p>
+</div>
+<div class="section" id="watchdog-timer">
+<h2>Watchdog Timer<a class="headerlink" href="#watchdog-timer" title="Permalink to this headline">¶</a></h2>
+<p>Watchdog timer words, build AmForth with</p>
+<dl class="docutils">
+<dt><code class="file docutils literal notranslate"><span class="pre">wdr.asm</span></code></dt>
+<dd>provides <strong class="command">wdr</strong> ( – )   resets watchdog (wdr)</dd>
+<dt><code class="file docutils literal notranslate"><span class="pre">store-wdc.asm</span></code></dt>
+<dd>provides <strong class="command">!wdc</strong> ( n – ) changes WDTCSR &amp; clears WDRF</dd>
+</dl>
+<p>from the <code class="file docutils literal notranslate"><span class="pre">avr8/words</span></code> directory. It also makes sense to
+build with <code class="file docutils literal notranslate"><span class="pre">sleep.asm</span></code>.</p>
+<dl class="docutils">
+<dt><strong class="command">+wdt ( -- )</strong></dt>
+<dd>turn on  System Reset Mode</dd>
+<dt><strong class="command">-wdt ( -- )</strong></dt>
+<dd>turn off System Reset Mode</dd>
+<dt><strong class="command">+wdi ( -- )</strong></dt>
+<dd>turn on  Interrupt Mode</dd>
+<dt><strong class="command">-wdi ( -- )</strong></dt>
+<dd>turn off Interrupt Mode</dd>
+<dt><strong class="command">wd.delay! ( n -- )</strong></dt>
+<dd>write prescaler AND -wdi -wdt</dd>
+</dl>
+<p>include the correct constants for device
+below are for atmega328p, or use the amforth-shell
+script.</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="mi">&amp;12</span> <span class="kn">constant</span> <span class="nc">WDTAddr</span>     <span class="c1">\ Watchdog Time-out Interrupt</span>
+<span class="mi">&amp;96</span> <span class="kn">constant</span> <span class="nc">WDTCSR</span>      <span class="c1">\ Watchdog control register</span>
+
+<span class="c1">\             7    6    5    4   3    2    1    0</span>
+<span class="c1">\ WDTCSR = WDIF WDIE WDP3 WDCE WDE WDP2 WDP1 WDP0</span>
+
+<span class="kn">:</span> <span class="nc">+wdt</span> <span class="c1">( -- )</span> <span class="nf">WDTCSR</span> <span class="k">c@ </span><span class="mi">%00001000</span> <span class="k">or </span><span class="nf">!wdc</span> <span class="k">;</span>
+<span class="kn">:</span> <span class="nc">+wdi</span> <span class="c1">( -- )</span> <span class="nf">WDTCSR</span> <span class="k">c@ </span><span class="mi">%01000000</span> <span class="k">or </span><span class="nf">!wdc</span> <span class="k">;</span>
+<span class="kn">:</span> <span class="nc">-wdt</span> <span class="c1">( -- )</span> <span class="nf">WDTCSR</span> <span class="k">c@ </span><span class="mi">%00001000</span> <span class="k">invert and </span><span class="nf">!wdc</span> <span class="k">;</span>
+<span class="kn">:</span> <span class="nc">-wdi</span> <span class="c1">( -- )</span> <span class="nf">WDTCSR</span> <span class="k">c@ </span><span class="mi">%01000000</span> <span class="k">invert and </span><span class="nf">!wdc</span> <span class="k">;</span>
+
+<span class="kn">:</span> <span class="nc">wd.delay!</span> <span class="c1">( n -- )</span>
+  <span class="c1">\ !wdc is given 00?00??? to write to WDTCSR</span>
+  <span class="c1">\ set prescaler and unset WDIE and unset WDE</span>
+  <span class="k">dup </span><span class="mh">$7</span> <span class="k">and swap </span><span class="mh">$8</span> <span class="k">and </span><span class="mi">2</span> <span class="k">lshift or </span><span class="nf">!wdc</span>
+<span class="k">;</span>
+
+<span class="c1">\ From page 55 of atmega328 datasheet</span>
+<span class="c1">\ WDP3 WDP2 WDP1 WDP0</span>
+
+<span class="mi">%0000</span> <span class="kn">constant</span> <span class="nc">wd.16ms</span>
+<span class="mi">%0001</span> <span class="kn">constant</span> <span class="nc">wd.32ms</span>
+<span class="mi">%0010</span> <span class="kn">constant</span> <span class="nc">wd.64ms</span>
+<span class="mi">%0011</span> <span class="kn">constant</span> <span class="nc">wd.125ms</span>
+<span class="mi">%0100</span> <span class="kn">constant</span> <span class="nc">wd.250ms</span>
+<span class="mi">%0101</span> <span class="kn">constant</span> <span class="nc">wd.500ms</span>
+<span class="mi">%0110</span> <span class="kn">constant</span> <span class="nc">wd.1s</span>
+<span class="mi">%0111</span> <span class="kn">constant</span> <span class="nc">wd.2s</span>
+<span class="mi">%1000</span> <span class="kn">constant</span> <span class="nc">wd.4s</span>
+<span class="mi">%1001</span> <span class="kn">constant</span> <span class="nc">wd.8s</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Many of these example intentionally result in
+your AVR8 microprocessor being reset.</p>
+</div>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="nf">#include</span> <span class="nf">ms.frt</span>
+<span class="nf">#include</span> <span class="kt">.</span><span class="nf">/wd.forth</span>
+
+<span class="kn">:</span> <span class="nc">ex.1</span> <span class="c1">( -- )</span> <span class="c1">\ reset in 8 seconds</span>
+  <span class="nf">wd.8s</span> <span class="nf">wd.delay!</span> <span class="nf">+wdt</span> <span class="mi">8</span> <span class="mi">0</span> <span class="k">?do </span><span class="mi">1000</span> <span class="k">ms i 1+ . cr loop</span>
+<span class="k">;</span>
+
+<span class="kn">:</span> <span class="nc">ex.2</span> <span class="c1">( -- )</span> <span class="c1">\ use wdr to defer reset but eventually fail</span>
+  <span class="nf">wd.4s</span> <span class="nf">wd.delay!</span> <span class="nf">+wdt</span> <span class="mi">6</span> <span class="mi">0</span> <span class="k">?do </span><span class="nf">wdr</span> <span class="mi">1000</span> <span class="k">i * dup ms . cr loop</span>
+<span class="k">;</span>
+
+<span class="c1">\ constants for atmega328p and UNO for PIN 13 LED</span>
+
+<span class="mh">$24</span> <span class="kn">constant</span> <span class="nc">DDRB</span>
+<span class="mh">$25</span> <span class="kn">constant</span> <span class="nc">PORTB</span>
+
+<span class="kn">:</span> <span class="nc">hb.isr</span> <span class="c1">( -- )</span> <span class="c1">\ toggle PIN 13 on UNO</span>
+  <span class="mi">#32</span> <span class="nf">PORTB</span> <span class="k">c@ xor </span><span class="nf">PORTB</span> <span class="k">c!</span>
+<span class="k">;</span>
+
+<span class="kn">:</span> <span class="nc">ex.3</span> <span class="c1">( -- )</span> <span class="c1">\ interrupt only no reset and toggle an led</span>
+  <span class="mi">#32</span> <span class="nf">DDRB</span> <span class="k">c@ or </span><span class="nf">DDRB</span> <span class="k">c! </span> <span class="c1">\ set PIN13 on UNO for output</span>
+  <span class="k">[&#39;] </span><span class="nf">hb.isr</span> <span class="nf">WDTAddr</span> <span class="no">int! </span><span class="c1">\ load xt of word to be run on wd timeout</span>
+  <span class="nf">wd.500ms</span> <span class="nf">wd.delay!</span> <span class="nf">+wdi</span> <span class="c1">\</span>
+<span class="k">;</span>
+
+<span class="kn">:</span> <span class="nc">ex.4</span> <span class="c1">( -- )</span> <span class="c1">\ run after ex.3</span>
+            <span class="c1">\ turn off watchdog interrupt and then turn on again</span>
+  <span class="nf">-wdi</span> <span class="mi">4</span> <span class="mi">0</span> <span class="k">?do </span><span class="mi">1000</span> <span class="k">ms i loop </span><span class="nf">+wdi</span> <span class="k">cr</span>
+<span class="k">;</span>
+</pre></div>
+</div>
+<p>use watchdog interrupt to wake from sleep
+this needs an AmForth built with <code class="file docutils literal notranslate"><span class="pre">sleep.asm</span></code></p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="kn">variable</span> <span class="nc">snooze</span>
+
+<span class="kn">:</span> <span class="nc">ex.5</span> <span class="c1">( -- )</span> <span class="c1">\ use watchdog interrupt to wake from deep sleep</span>
+  <span class="mi">0</span> <span class="nf">snooze</span> <span class="k">!</span>
+  <span class="k">[&#39;] </span><span class="no">noop </span><span class="nf">WDTAddr</span> <span class="no">int! </span><span class="c1">\ interrupt routine does nothing</span>
+  <span class="nf">wd.4s</span> <span class="nf">wd.delay!</span> <span class="nf">+wdi</span>  <span class="c1">\ except wake the MCU up.</span>
+  <span class="k">begin</span>
+      <span class="mi">3</span> <span class="no">sleep </span>          <span class="c1">\ sleep</span>
+      <span class="nf">snooze</span> <span class="k">dup @ 1+ dup . cr swap ! </span><span class="c1">\ inc print store</span>
+      <span class="mi">50</span> <span class="k">ms </span>            <span class="c1">\ small delay to allow print to finish</span>
+  <span class="nf">snooze</span> <span class="k">@ </span><span class="mi">5</span> <span class="k">&gt; until </span>   <span class="c1">\ exit after 6 sleeps</span>
+<span class="k">;</span>
+
+<span class="c1">\ use watchdog interrupt and reset</span>
+
+<span class="nf">#include</span> <span class="nf">is.frt</span>
+<span class="nf">#include</span> <span class="nf">values.frt</span>
+<span class="nf">#include</span> <span class="nf">avr-values.frt</span>
+<span class="nf">#include</span> <span class="nf">defers.frt</span>
+
+<span class="kn">variable</span> <span class="nc">app-reg</span>          <span class="c1">\ my &quot;application&quot; status register</span>
+<span class="mi">0</span> <span class="kn">Evalue</span> <span class="nc">app-reg-save</span>     <span class="c1">\ persistant EEPROM store for above</span>
+                        <span class="c1">\ to survive a reset</span>
+<span class="kn">:</span> <span class="nc">panic.isr</span> <span class="c1">( -- )</span>
+
+  <span class="c1">\ wdr wasn&#39;t called in time</span>
+  <span class="c1">\ ...</span>
+
+  <span class="nf">app-reg</span> <span class="k">@ to </span><span class="nf">app-reg-save</span>  <span class="c1">\ store &quot;application&quot; status register</span>
+  <span class="mi">#32</span> <span class="nf">PORTB</span> <span class="k">c@ xor </span><span class="nf">PORTB</span> <span class="k">c! </span> <span class="c1">\ turn on PIN 13 LED</span>
+
+  <span class="c1">\ will reset on next</span>
+  <span class="c1">\ watchdog time out</span>
+
+<span class="k">;</span>
+
+<span class="kn">:</span> <span class="nc">ex.6</span> <span class="c1">( -- )</span> <span class="c1">\ use watchdog interrupt and reset</span>
+  <span class="mi">#32</span> <span class="nf">DDRB</span> <span class="k">c@ or </span><span class="nf">DDRB</span> <span class="k">c! </span>           <span class="c1">\ set PIN13 on UNO for output</span>
+  <span class="mi">#32</span> <span class="k">invert </span><span class="nf">PORTB</span> <span class="k">c@ and </span><span class="nf">PORTB</span> <span class="k">c! </span> <span class="c1">\ set PIN13 on low</span>
+  <span class="k">[&#39;] </span><span class="nf">panic.isr</span> <span class="nf">WDTAddr</span> <span class="no">int! </span>       <span class="c1">\ load xt of word to be run on wd timeout</span>
+  <span class="mi">0</span> <span class="k">to </span><span class="nf">app-reg-save</span>                 <span class="c1">\ zero eeprom store of &quot;register&quot;</span>
+
+  <span class="nf">wd.125ms</span> <span class="nf">wd.delay!</span> <span class="nf">+wdt</span> <span class="nf">+wdi</span>
+
+  <span class="s">s&quot;</span> <span class="s">Will reset in a short while. Look at app-reg-save after</span><span class="nf">&quot;</span> <span class="no">itype </span><span class="k">cr</span>
+
+  <span class="mi">250</span> <span class="mi">1</span> <span class="k">?do</span>
+      <span class="k">i ms </span><span class="nf">wdr</span> <span class="nf">app-reg</span> <span class="k">dup @ </span>       <span class="c1">\ some &quot;made up&quot; app-reg value</span>
+      <span class="k">i + </span> <span class="k">swap !</span>
+  <span class="k">loop</span>
+
+  <span class="c1">\ after the reset/power cycle look at Evalue app-reg-save</span>
+<span class="k">;</span>
+
+<span class="kn">:</span> <span class="nc">ex.7</span> <span class="c1">( -- )</span> <span class="c1">\ (roughly) what frequency is my 128 kHz ?</span>
+
+  <span class="mi">#32</span> <span class="nf">DDRB</span> <span class="k">c@ or </span><span class="nf">DDRB</span> <span class="k">c! </span> <span class="c1">\ set PIN13 on UNO for output</span>
+  <span class="k">[&#39;] </span><span class="nf">hb.isr</span> <span class="nf">WDTAddr</span> <span class="no">int! </span><span class="c1">\ load xt of word to be run on wd timeout</span>
+
+  <span class="c1">\ frequency f on PIN 13</span>
+  <span class="c1">\ 1 period is 2 timeouts</span>
+  <span class="c1">\ each timeout is 2000 ticks</span>
+
+  <span class="c1">\ so 2*f*2000 is roughly</span>
+  <span class="c1">\ the frequency of my UNO&#39;s</span>
+  <span class="c1">\ 128 kHz oscillator.</span>
+
+  <span class="nf">wd.16ms</span> <span class="nf">wd.delay!</span> <span class="nf">+wdi</span>
+
+  <span class="c1">\ I measure f to be 28.56Hz</span>
+  <span class="c1">\ so watchdog  ~114.2kHz</span>
+
+  <span class="c1">\ compare datasheet page 606</span>
+  <span class="c1">\ for VCC=5V T=25DegC</span>
+  <span class="c1">\ from chart ~114.2kHz</span>
+<span class="k">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="acknowledgements">
+<h2>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permalink to this headline">¶</a></h2>
+<p>This recipe is based upon work by David Wallis and Tristan Williams</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          <h3>Table Of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../UG/amforth_user.html">User’s Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TG.html">Technical Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../Cookbook.html">Cookbook</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Boards.html">Popular Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="General.html">General Code Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Programming.html">Programming and Debugging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware.html">Hardware Modules (Generic)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="Hardware-AVR.html">Hardware Modules (AVR)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-MSP430.html">Hardware Modules (MSP430)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-RISC-V.html">Hardware Modules (RISC-V)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-ARM.html">Hardware Modules (ARM)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../Opinion/Opinion.html">Opinion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Recognizers.html">Recognizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../refcard.html">Reference Card (outdated! from release 5.5)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+
+          <h3 style="margin-top: 1.5em;">Search</h3>
+          <form class="search" action="../../search.html" method="get">
+            <input type="text" name="q" />
+            <input type="submit" value="Go" />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+          </form>
+          <p class="searchtip" style="font-size: 90%">
+            Enter search terms or a module, class or function name.
+          </p>
+          <div class="shariff" data-lang="en" data-theme="white" data-backend-url="../../_static/shariff"></div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+            <a href="../../_sources/TG/recipes/Watchdog.rst.txt"
+               rel="nofollow">Show Source</a>
+        </div>
+
+
+        <div>
+<a href="mailto:amforth-devel@lists.sourceforge.net">amforth-devel@lists.sourceforge.net</a>
+        </div>
+        <div class="clearer"></div>
+
+        <div class="right">Hosted by <a
+    href="http://sourceforge.net/projects/amforth">
+    <img src="http://sflogo.sourceforge.net/sflogo.php?group_id=179967&type=10"
+    width="80" height="15" border="0"
+    alt="Get amforth: Forth for AVR ATmega at SourceForge.net." />
+    </a>
+        </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <script src="/_static/shariff.complete.js"></script>
+
+  </body>
+</html>

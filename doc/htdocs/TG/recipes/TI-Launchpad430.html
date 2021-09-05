@@ -1,0 +1,477 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Texas Instruments LaunchPad 430 &#8212; AmForth</title>
+    <link rel="stylesheet" href="../../_static/amforth.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Amforth with Raspberry PI" href="TI-Raspberry.html" />
+    <link rel="prev" title="AVR Butterfly" href="AVR-Butterfly.html" />
+    <link rel="stylesheet" href="../../_static/shariff.min.css" type="text/css" />
+
+  </head><body>
+    <div class="header-wrapper">
+      <div class="header">
+        <div class="headertitle"><a
+          href="../../index.html">AmForth</a></div>
+        <div class="rel">
+          <a href="http://sourceforge.net/p/amforth/community/HEAD/tree/" title="Community Repository"
+             accesskey="C">Community</a> |
+          <a href="/faq.html" title="FAQ"
+             accesskey="F">FAQ</a> |
+          <a href="/UG/amforth_user.html" title="User Guide"
+             accesskey="U">User Guide</a> |
+          <a href="/TG/TG.html" title="Technical Guide"
+             accesskey="T">Technical Guide</a> |
+          <a href="/TG/Cookbook.html" title="Recipes"
+             accesskey="R">Cookbook</a> |
+          <a href="http://sourceforge.net/projects/amforth/" title="Download"
+             accesskey="D">Download</a> |
+          <a href="/Opinion/Opinion.html" title="Opinion"
+             accesskey="O">Opinion</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="texas-instruments-launchpad-430">
+<span id="ti-launchpad-430"></span><h1>Texas Instruments LaunchPad 430<a class="headerlink" href="#texas-instruments-launchpad-430" title="Permalink to this headline">¶</a></h1>
+<p>Texas Instruments has the MSP430 microcontroller
+familiy. It is completely different to the AVR
+Atmegas. Amforth recently started to support it
+as well. The Forth kernel is (almost) the same,
+many tools like the amforth-shell work for both
+too. Since the MSP430 is new, bugs and other oddities
+are more likely than for the Atmegas.</p>
+<p>The sources are made for the
+<a class="reference external" href="http://www.mikekohn.net/micro/naken_asm.php">naken_asm</a>
+assembler.</p>
+<div class="section" id="playing-with-the-launchpad">
+<h2>Playing with the Launchpad<a class="headerlink" href="#playing-with-the-launchpad" title="Permalink to this headline">¶</a></h2>
+<p>The LEDs can be used as follows</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="kn">:</span> <span class="nc">red:init</span>   <span class="mi">1</span> <span class="mi">34</span> <span class="nf">bm-set</span> <span class="k">;</span>
+<span class="kn">:</span> <span class="nc">red:on</span>     <span class="mi">1</span> <span class="mi">33</span> <span class="nf">bm-set</span> <span class="k">;</span>
+<span class="kn">:</span> <span class="nc">red:off</span>    <span class="mi">1</span> <span class="mi">33</span> <span class="nf">bm-clear</span> <span class="k">;</span>
+<span class="kn">:</span> <span class="nc">green:init</span> <span class="mi">64</span> <span class="mi">34</span> <span class="nf">bm-set</span> <span class="k">;</span>
+<span class="kn">:</span> <span class="nc">green:on</span>   <span class="mi">64</span> <span class="mi">33</span> <span class="nf">bm-set</span> <span class="k">;</span>
+<span class="kn">:</span> <span class="nc">green:off</span>  <span class="mi">64</span> <span class="mi">33</span> <span class="nf">bm-clear</span> <span class="k">;</span>
+</pre></div>
+</div>
+<p>Example for (machine) code (instead of
+the forth code above)</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="k">code </span><span class="nf">red:init</span>  <span class="mh">$D3D2</span> <span class="k">, </span><span class="mh">$0022</span> <span class="k">, </span><span class="nf">end-code</span>
+<span class="k">code </span><span class="nf">red:on</span>  <span class="mh">$D3D2</span> <span class="k">, </span><span class="mh">$0021</span> <span class="k">, </span><span class="nf">end-code</span>
+<span class="k">code </span><span class="nf">red:off</span> <span class="mh">$C3D2</span> <span class="k">, </span><span class="mh">$0021</span> <span class="k">, </span><span class="nf">end-code</span>
+</pre></div>
+</div>
+<p>There are many ways to wait, e.g. do other
+things while waiting (<cite>PAUSE</cite>). A simple
+approach is do nothing:</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="kn">:</span> <span class="nc">ms</span> <span class="mi">0</span> <span class="k">?do </span><span class="mi">1</span><span class="k">ms loop ;</span>
+</pre></div>
+</div>
+<p>Now let the red LED blink ONCE</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="kn">:</span> <span class="nc">blink</span> <span class="nf">red:on</span> <span class="mi">100</span> <span class="k">ms </span><span class="nf">red:off</span> <span class="mi">100</span> <span class="k">ms ;</span>
+</pre></div>
+</div>
+<p>Test it! Now! The compiled version is <em>much</em>
+faster than the sequence “1 33 bm-set 1 33 bm-clear”
+(watch the red flashes). Next is to let it blink until
+a key is pressed</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="kn">:</span> <span class="nc">blink-forever</span> <span class="k">begin </span><span class="nf">blink</span> <span class="k">key? until key drop ;</span>
+</pre></div>
+</div>
+<p>A big difference to the AVR’s is that amforth for the MSP430
+needs an explicit <strong class="command">save</strong> command to make all writes
+to the dictionary permanent. Otherwise every changes are lost
+at <strong class="command">cold</strong> or reset and moreover a re-flash is necessary.</p>
+</div>
+<div class="section" id="hardware-setup">
+<h2>Hardware Setup<a class="headerlink" href="#hardware-setup" title="Permalink to this headline">¶</a></h2>
+<p>At the first glance, the hardware setup is trivial:
+Connect your Launchpad to the USB port of your PC.
+It may take a while until the modem manager detects
+that it is not a device it can handle. Now open a
+terminal (I use minicom) and set the serial port
+settings: <cite>/dev/acm0</cite>, 9600 and 8N1 without flow
+control.</p>
+<div class="section" id="msp430-g2553">
+<h3>MSP430 G2553<a class="headerlink" href="#msp430-g2553" title="Permalink to this headline">¶</a></h3>
+<p>The mspdebug to actually program the controller uses
+the rf2500 protocol:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt; mspdebug rf2500 &quot;prog launchpad430.hex &quot;
+ MSPDebug version 0.22 - debugging tool for MSP430 MCUs
+ Copyright (C) 2009-2013 Daniel Beer &lt;dlbeer@gmail.com&gt;
+ This is free software; see the source for copying conditions.  There is NO
+ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+ Trying to open interface 1 on 007
+ rf2500: warning: can&#39;t detach kernel driver: No data available
+ Initializing FET...
+ FET protocol version is 30394216
+ Set Vcc: 3000 mV
+ Configured for Spy-Bi-Wire
+ fet: FET returned error code 4 (Could not find device or device not supported)
+ fet: command C_IDENT1 failed
+ Using Olimex identification procedure
+ Device ID: 0x2553
+   Code start address: 0xc000
+   Code size         : 16384 byte = 16 kb
+   RAM  start address: 0x200
+   RAM  end   address: 0x3ff
+   RAM  size         : 512 byte = 0 kb
+ Device: MSP430G2xx3
+ Number of breakpoints: 2
+ fet: FET returned NAK
+ warning: device does not support power profiling
+ Chip ID data: 25 53
+ Erasing...
+ Programming...
+ Writing  424 bytes at 0200...
+ Writing  188 bytes at 1000...
+ Writing 4096 bytes at e000...
+ Writing 4008 bytes at f000...
+ Writing   32 bytes at ffe0...
+ Done, 8748 bytes total
+</pre></div>
+</div>
+<p>Your Amforth terminal session (minicom) should now print some readable
+characters like</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>+-------------------------------------
+| amforth 5.6 MSP430G2553 8000 kHz
+| &gt;
+|
+</pre></div>
+</div>
+<p>Thats all. If nothing has happened look for error messages
+in the mspdebug window. Try replugging the launchpad. Some
+more information are in the <a class="reference internal" href="TI-Raspberry.html#ti-raspberry"><span class="std std-ref">Amforth with Raspberry PI</span></a> recipe.</p>
+<p>You can reprogram the controller via USB whilst the terminal
+session is still active. In this case you’ll see repeated
+welcome strings from amforth due to some resets.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>+-------------------------------------
+| amforth 5.6 MSP430G2553 8000 kHz
+| &gt; amforth 5.6 MSP430G2553 8000 kHz
+| &gt; amforth 5.6 MSP430G2553 8000 kHz
+| &gt; amforth 5.6 MSP430G2553 8000 kHz
+| &gt; amforth 5.6 MSP430G2553 8000 kHz
+| &gt;
+|
+</pre></div>
+</div>
+</div>
+<div class="section" id="msp430-f5529-fr5969">
+<h3>MSP430 F5529 &amp; FR5969<a class="headerlink" href="#msp430-f5529-fr5969" title="Permalink to this headline">¶</a></h3>
+<p>Thess chips require the libmsp430.so from TI which is (at least
+with ubuntu) <em>not</em> part of the mspdebug package. I used the one
+from <a class="reference external" href="https://s3.amazonaws.com/energiaUS/energia-0101E0016-linux64.tgz">Energia</a>
+and copied it into <code class="file docutils literal notranslate"><span class="pre">/usr/lib</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ mspdebug tilib &quot;prog amforth-5529.hex&quot;
+MSPDebug version 0.22 - debugging tool for MSP430 MCUs
+Copyright (C) 2009-2013 Daniel Beer &lt;dlbeer@gmail.com&gt;
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+tilib: can&#39;t find libmsp430.so: libmsp430.so: cannot open shared object file: No such file or directory
+</pre></div>
+</div>
+<p>If the following error message is displayed</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tilib: MSP430_Initialize: Interface Communication error <span class="o">(</span><span class="nv">error</span> <span class="o">=</span> <span class="m">35</span><span class="o">)</span>
+</pre></div>
+</div>
+<p>the modem manager is still using the serial port. Just wait for it.</p>
+<p>The next error message is potentially more troublesome</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mspdebug tilib <span class="s2">&quot;prog amforth-5529.hex&quot;</span>
+MSPDebug version <span class="m">0</span>.22 - debugging tool <span class="k">for</span> MSP430 MCUs
+Copyright <span class="o">(</span>C<span class="o">)</span> <span class="m">2009</span>-2013 Daniel Beer &lt;dlbeer@gmail.com&gt;
+This is free software<span class="p">;</span> see the <span class="nb">source</span> <span class="k">for</span> copying conditions.  There is NO
+warranty<span class="p">;</span> not even <span class="k">for</span> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: ttyACM0
+MSP430_Initialize: ttyACM0
+FET firmware update is required.
+Re-run with --allow-fw-update to perform a firmware update.
+tilib: device initialization failed
+</pre></div>
+</div>
+<p>Now you have to update the programming module on the launchpad. Be aware
+that this is a potentially dangerous action, it may seem to brick the
+chip (if not, you’re lucky) if something goes wrong:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ mspdebug tilib --allow-fw-update
+MSPDebug version <span class="m">0</span>.22 - debugging tool <span class="k">for</span> MSP430 MCUs
+Copyright <span class="o">(</span>C<span class="o">)</span> <span class="m">2009</span>-2013 Daniel Beer &lt;dlbeer@gmail.com&gt;
+This is free software<span class="p">;</span> see the <span class="nb">source</span> <span class="k">for</span> copying conditions.  There is NO
+warranty<span class="p">;</span> not even <span class="k">for</span> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: HID_FET
+MSP430_Initialize: HID_FET
+FET firmware update is required.
+Starting firmware update <span class="o">(</span>this may take some <span class="nb">time</span><span class="o">)</span>...
+tilib: MSP430_FET_FwUpdate: MSP-FET / eZ-FET recovery failed <span class="o">(</span><span class="nv">error</span> <span class="o">=</span> <span class="m">73</span><span class="o">)</span>
+tilib: device initialization failed
+</pre></div>
+</div>
+<p>In this case try running the command as root e.g. via sudo</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo mspdebug tilib --allow-fw-update
+<span class="o">[</span>sudo<span class="o">]</span> password <span class="k">for</span> &lt;user&gt;:
+MSPDebug version <span class="m">0</span>.22 - debugging tool <span class="k">for</span> MSP430 MCUs
+Copyright <span class="o">(</span>C<span class="o">)</span> <span class="m">2009</span>-2013 Daniel Beer &lt;dlbeer@gmail.com&gt;
+This is free software<span class="p">;</span> see the <span class="nb">source</span> <span class="k">for</span> copying conditions.  There is NO
+warranty<span class="p">;</span> not even <span class="k">for</span> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: HID_FET
+MSP430_Initialize: HID_FET
+FET firmware update is required.
+Starting firmware update <span class="o">(</span>this may take some <span class="nb">time</span><span class="o">)</span>...
+Initializing bootloader...
+Programming new firmware...
+  <span class="m">0</span> percent <span class="k">done</span>
+ <span class="m">34</span> percent <span class="k">done</span>
+ <span class="m">67</span> percent <span class="k">done</span>
+<span class="m">100</span> percent <span class="k">done</span>
+Update <span class="nb">complete</span>
+Done, finishing...
+MSP430_VCC: <span class="m">3000</span> mV
+tilib: MSP430_VCC: Internal error <span class="o">(</span><span class="nv">error</span> <span class="o">=</span> <span class="m">68</span><span class="o">)</span>
+tilib: device initialization failed
+</pre></div>
+</div>
+<p>The error 68 signals “ok, I’m almost done”. Now re-run the same command to
+finally do the firmware update. Note some subtle differences in the
+output like the HID_FET vs. ttyACM0.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo mspdebug tilib --allow-fw-update
+MSPDebug version <span class="m">0</span>.22 - debugging tool <span class="k">for</span> MSP430 MCUs
+Copyright <span class="o">(</span>C<span class="o">)</span> <span class="m">2009</span>-2013 Daniel Beer &lt;dlbeer@gmail.com&gt;
+This is free software<span class="p">;</span> see the <span class="nb">source</span> <span class="k">for</span> copying conditions.  There is NO
+warranty<span class="p">;</span> not even <span class="k">for</span> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: ttyACM0
+MSP430_Initialize: ttyACM0
+FET firmware update is required.
+Starting firmware update <span class="o">(</span>this may take some <span class="nb">time</span><span class="o">)</span>...
+Initializing bootloader...
+Programming new firmware...
+  <span class="m">4</span> percent <span class="k">done</span>
+ <span class="m">20</span> percent <span class="k">done</span>
+ <span class="m">36</span> percent <span class="k">done</span>
+ <span class="m">52</span> percent <span class="k">done</span>
+ <span class="m">68</span> percent <span class="k">done</span>
+ <span class="m">84</span> percent <span class="k">done</span>
+<span class="m">100</span> percent <span class="k">done</span>
+Update <span class="nb">complete</span>
+Done, finishing...
+MSP430_VCC: <span class="m">3000</span> mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430F5529 <span class="o">(</span><span class="nv">id</span> <span class="o">=</span> 0x0030<span class="o">)</span>
+<span class="m">8</span> breakpoints available
+MSP430_EEM_Init
+Chip ID data: <span class="m">55</span> <span class="m">29</span> <span class="m">18</span>
+
+Available commands:
+  <span class="o">=</span>           erase       isearch     power       save_raw    simio
+  <span class="nb">alias</span>       <span class="nb">exit</span>        load        prog        <span class="nb">set</span>         step
+  <span class="nb">break</span>       fill        load_raw    <span class="nb">read</span>        setbreak    sym
+  cgraph      gdb         md          regs        setwatch    verify
+  delbreak    <span class="nb">help</span>        mw          reset       setwatch_r  verify_raw
+  dis         hexout      opt         run         setwatch_w
+
+Available options:
+  color                       gdb_loop
+  enable_bsl_access           gdbc_xfer_size
+  enable_locked_flash_access  iradix
+  fet_block_size              quiet
+  gdb_default_port
+
+Type <span class="s2">&quot;help &lt;topic&gt;&quot;</span> <span class="k">for</span> more information.
+Use the <span class="s2">&quot;opt&quot;</span> <span class="nb">command</span> <span class="o">(</span><span class="s2">&quot;help opt&quot;</span><span class="o">)</span> to <span class="nb">set</span> options.
+Press Ctrl+D to quit.
+
+<span class="o">(</span>mspdebug<span class="o">)</span> &lt;Ctrl-D&gt;
+MSP430_Run
+MSP430_Close
+</pre></div>
+</div>
+<p>If done properly the actions looks as follows</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ sudo mspdebug tilib --allow-fw-update
+MSPDebug version <span class="m">0</span>.22 - debugging tool <span class="k">for</span> MSP430 MCUs
+Copyright <span class="o">(</span>C<span class="o">)</span> <span class="m">2009</span>-2013 Daniel Beer &lt;dlbeer@gmail.com&gt;
+This is free software<span class="p">;</span> see the <span class="nb">source</span> <span class="k">for</span> copying conditions.  There is NO
+warranty<span class="p">;</span> not even <span class="k">for</span> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+MSP430_GetNumberOfUsbIfs
+MSP430_GetNameOfUsbIf
+Found FET: ttyACM0
+MSP430_Initialize: ttyACM0
+FET firmware update is required.
+Starting firmware update <span class="o">(</span>this may take some <span class="nb">time</span><span class="o">)</span>...
+Initializing bootloader...
+Programming new firmware...
+  <span class="m">75</span> percent <span class="k">done</span>
+  <span class="m">84</span> percent <span class="k">done</span>
+  <span class="m">84</span> percent <span class="k">done</span>
+  <span class="m">91</span> percent <span class="k">done</span>
+  <span class="m">96</span> percent <span class="k">done</span>
+  <span class="m">99</span> percent <span class="k">done</span>
+ <span class="m">100</span> percent <span class="k">done</span>
+ <span class="m">100</span> percent <span class="k">done</span>
+Initializing bootloader...
+Programming new firmware...
+   <span class="m">4</span> percent <span class="k">done</span>
+  <span class="m">20</span> percent <span class="k">done</span>
+  <span class="m">36</span> percent <span class="k">done</span>
+  <span class="m">52</span> percent <span class="k">done</span>
+  <span class="m">68</span> percent <span class="k">done</span>
+  <span class="m">84</span> percent <span class="k">done</span>
+ <span class="m">100</span> percent <span class="k">done</span>
+Update <span class="nb">complete</span>
+Done, finishing...
+MSP430_VCC: <span class="m">3000</span> mV
+MSP430_OpenDevice
+MSP430_GetFoundDevice
+Device: MSP430FR5969 <span class="o">(</span><span class="nv">id</span> <span class="o">=</span> 0x012d<span class="o">)</span>
+<span class="m">3</span> breakpoints available
+MSP430_EEM_Init
+Chip ID data: <span class="m">69</span> <span class="m">81</span> <span class="m">30</span>
+
+Available commands:
+  <span class="o">=</span>           erase       isearch     power       save_raw    simio
+  <span class="nb">alias</span>       <span class="nb">exit</span>        load        prog        <span class="nb">set</span>         step
+  <span class="nb">break</span>       fill        load_raw    <span class="nb">read</span>        setbreak    sym
+  cgraph      gdb         md          regs        setwatch    verify
+  delbreak    <span class="nb">help</span>        mw          reset       setwatch_r  verify_raw
+  dis         hexout      opt         run         setwatch_w
+
+Available options:
+  color                       gdb_loop
+  enable_bsl_access           gdbc_xfer_size
+  enable_locked_flash_access  iradix
+  fet_block_size              quiet
+  gdb_default_port
+
+Type <span class="s2">&quot;help &lt;topic&gt;&quot;</span> <span class="k">for</span> more information.
+Use the <span class="s2">&quot;opt&quot;</span> <span class="nb">command</span> <span class="o">(</span><span class="s2">&quot;help opt&quot;</span><span class="o">)</span> to <span class="nb">set</span> options.
+Press Ctrl+D to quit.
+
+<span class="o">(</span>mspdebug<span class="o">)</span>  &lt;Ctrl-D&gt;
+MSP430_Run
+MSP430_Close
+</pre></div>
+</div>
+<p>Now your hardware is configured to upload the hexfiles from amforth</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ mspdebug tilib <span class="s2">&quot;prog amforth-5529.hex&quot;</span>
+</pre></div>
+</div>
+<p>giving the amforth command prompt in your serial terminal</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="nf">amforth</span> <span class="mi">6</span><span class="kt">.1</span> <span class="nf">MSP430F5529</span> <span class="mi">8000</span> <span class="nf">kHz</span>
+<span class="k">&gt; words</span>
+<span class="k">key? key emit? emit </span><span class="kt">...</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          <h3>Table Of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../UG/amforth_user.html">User’s Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TG.html">Technical Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../Cookbook.html">Cookbook</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="Boards.html">Popular Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="General.html">General Code Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Programming.html">Programming and Debugging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware.html">Hardware Modules (Generic)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-AVR.html">Hardware Modules (AVR)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-MSP430.html">Hardware Modules (MSP430)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-RISC-V.html">Hardware Modules (RISC-V)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-ARM.html">Hardware Modules (ARM)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../Opinion/Opinion.html">Opinion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Recognizers.html">Recognizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../refcard.html">Reference Card (outdated! from release 5.5)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+
+          <h3 style="margin-top: 1.5em;">Search</h3>
+          <form class="search" action="../../search.html" method="get">
+            <input type="text" name="q" />
+            <input type="submit" value="Go" />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+          </form>
+          <p class="searchtip" style="font-size: 90%">
+            Enter search terms or a module, class or function name.
+          </p>
+          <div class="shariff" data-lang="en" data-theme="white" data-backend-url="../../_static/shariff"></div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+            <a href="../../_sources/TG/recipes/TI-Launchpad430.rst.txt"
+               rel="nofollow">Show Source</a>
+        </div>
+
+
+        <div>
+<a href="mailto:amforth-devel@lists.sourceforge.net">amforth-devel@lists.sourceforge.net</a>
+        </div>
+        <div class="clearer"></div>
+
+        <div class="right">Hosted by <a
+    href="http://sourceforge.net/projects/amforth">
+    <img src="http://sflogo.sourceforge.net/sflogo.php?group_id=179967&type=10"
+    width="80" height="15" border="0"
+    alt="Get amforth: Forth for AVR ATmega at SourceForge.net." />
+    </a>
+        </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <script src="/_static/shariff.complete.js"></script>
+
+  </body>
+</html>

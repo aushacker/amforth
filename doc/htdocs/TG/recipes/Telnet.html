@@ -1,0 +1,240 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Telnet &#8212; AmForth</title>
+    <link rel="stylesheet" href="../../_static/amforth.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Timer" href="Timer.html" />
+    <link rel="prev" title="Serial Peripheral Interface SPI" href="SPI.html" />
+    <link rel="stylesheet" href="../../_static/shariff.min.css" type="text/css" />
+
+  </head><body>
+    <div class="header-wrapper">
+      <div class="header">
+        <div class="headertitle"><a
+          href="../../index.html">AmForth</a></div>
+        <div class="rel">
+          <a href="http://sourceforge.net/p/amforth/community/HEAD/tree/" title="Community Repository"
+             accesskey="C">Community</a> |
+          <a href="/faq.html" title="FAQ"
+             accesskey="F">FAQ</a> |
+          <a href="/UG/amforth_user.html" title="User Guide"
+             accesskey="U">User Guide</a> |
+          <a href="/TG/TG.html" title="Technical Guide"
+             accesskey="T">Technical Guide</a> |
+          <a href="/TG/Cookbook.html" title="Recipes"
+             accesskey="R">Cookbook</a> |
+          <a href="http://sourceforge.net/projects/amforth/" title="Download"
+             accesskey="D">Download</a> |
+          <a href="/Opinion/Opinion.html" title="Opinion"
+             accesskey="O">Opinion</a>
+        </div>
+       </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="content">
+        <div class="document">
+            
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="telnet">
+<span id="id1"></span><h1>Telnet<a class="headerlink" href="#telnet" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="hardware">
+<h2>Hardware<a class="headerlink" href="#hardware" title="Permalink to this headline">¶</a></h2>
+<p>Telnet is a TCP/IP protocol. It requires a connection to
+a network (RJ45, twisted pair Ethernet is commonly used).
+A microcontroller like the Atmega needs a separate module
+to deal with all the low level stuff. For this recipe an
+ENC28J60 is used. It is connected via SPI to the Atmega.
+In addition, the interrupt line of the  enc28j60 (pin4)
+has to be connected to INT2 (pin3 on an Atmega644).</p>
+<p>The software needs slightly more that 1KB RAM for itself
+(mostly buffers), so only the bigger types satisfy this
+requirement.</p>
+</div>
+<div class="section" id="software">
+<h2>Software<a class="headerlink" href="#software" title="Permalink to this headline">¶</a></h2>
+<p>The software is currently only available in the
+<a class="reference external" href="http://sourceforge.net/p/amforth/community/HEAD/tree/tcp-ip/">Community Repository</a></p>
+<p>Every network needs some settings. As of now, they are hard
+coded into the code, so you need to change the source code for
+the MAC address and the IP address in the <code class="file docutils literal notranslate"><span class="pre">anc28j60.frt</span></code> :</p>
+<div class="highlight-forth notranslate"><div class="highlight"><pre><span></span><span class="c1">\ *** own MAC address ***</span>
+<span class="mh">$00</span> <span class="kn">constant</span> <span class="nc">Mymac1</span>
+<span class="mh">$22</span> <span class="kn">constant</span> <span class="nc">Mymac2</span>
+<span class="mh">$F9</span> <span class="kn">constant</span> <span class="nc">Mymac3</span>
+<span class="mh">$01</span> <span class="kn">constant</span> <span class="nc">Mymac4</span>
+<span class="mh">$36</span> <span class="kn">constant</span> <span class="nc">Mymac5</span>
+<span class="mh">$B6</span> <span class="kn">constant</span> <span class="nc">Mymac6</span>
+<span class="c1">\ *** own IP address ***</span>
+<span class="mi">&amp;192</span> <span class="kn">constant</span> <span class="nc">Myip1</span>
+<span class="mi">&amp;168</span> <span class="kn">constant</span> <span class="nc">Myip2</span>
+<span class="mi">&amp;002</span> <span class="kn">constant</span> <span class="nc">Myip3</span>
+<span class="mi">&amp;079</span> <span class="kn">constant</span> <span class="nc">Myip4</span>
+</pre></div>
+</div>
+<p>The code assumes a /24 network for the other network settings.</p>
+</div>
+<div class="section" id="using">
+<h2>Using<a class="headerlink" href="#using" title="Permalink to this headline">¶</a></h2>
+<p>After uploading the code base (<code class="file docutils literal notranslate"><span class="pre">4th_mod1.frt</span></code> includes most
+of the dependencies) the serial port is still the command prompt.
+With the command <code class="docutils literal notranslate"><span class="pre">+telnet</span></code> the network is started and the TCP
+Port 23 is opened. In this stage, a network ping should work</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>serial terminal:
+<span class="p">|</span>&gt; +telnet
+<span class="p">|</span> ok
+<span class="p">|</span>&gt; Send Ping Reply !
+<span class="p">|</span>Send Ping Reply !
+<span class="p">|</span>Send Ping Reply !
+<span class="p">|</span>Send Ping Reply !
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>remote shell:
+<span class="p">|</span>$ ping <span class="m">192</span>.168.2.79
+<span class="p">|</span>PING <span class="m">192</span>.168.2.79 <span class="o">(</span><span class="m">192</span>.168.2.79<span class="o">)</span> <span class="m">56</span><span class="o">(</span><span class="m">84</span><span class="o">)</span> bytes of data.
+<span class="p">|</span><span class="m">64</span> bytes from <span class="m">192</span>.168.2.79: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">1</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span><span class="m">1037</span> ms
+<span class="p">|</span><span class="m">64</span> bytes from <span class="m">192</span>.168.2.79: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">2</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span><span class="m">75</span>.1 ms
+<span class="p">|</span><span class="m">64</span> bytes from <span class="m">192</span>.168.2.79: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">3</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span><span class="m">19</span>.0 ms
+<span class="p">|</span><span class="m">64</span> bytes from <span class="m">192</span>.168.2.79: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">4</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span><span class="m">19</span>.0 ms
+<span class="p">|</span><span class="m">64</span> bytes from <span class="m">192</span>.168.2.79: <span class="nv">icmp_seq</span><span class="o">=</span><span class="m">5</span> <span class="nv">ttl</span><span class="o">=</span><span class="m">64</span> <span class="nv">time</span><span class="o">=</span><span class="m">19</span>.0 ms
+</pre></div>
+</div>
+<p>To get a telnet session, the amforth command interpreter has
+to switch its IO</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">serial terminal:</span>
+<span class="go">|&gt; +telnet</span>
+<span class="go">| ok</span>
+<span class="go">|&gt; +tnredir</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>remote shell:
+$ telnet <span class="m">192</span>.168.2.79
+<span class="p">|</span>Trying <span class="m">192</span>.168.2.79...
+<span class="p">|</span>Connected to <span class="m">192</span>.168.2.79.
+<span class="p">|</span>Escape character is <span class="s1">&#39;^]&#39;</span>.
+<span class="p">|</span>Start Telnet Server:
+<span class="p">|</span> ok
+<span class="p">|</span>&gt; <span class="m">1</span> <span class="m">2</span> + .
+<span class="p">|</span><span class="m">1</span> <span class="m">2</span> + .
+<span class="p">|</span><span class="m">3</span>  ok
+<span class="p">|</span>&gt;
+<span class="p">|</span> ok
+<span class="p">|</span>&gt; : hi .<span class="s2">&quot; Howdy, mate!&quot;</span> cr <span class="p">;</span>
+<span class="p">|</span>: hi .<span class="s2">&quot; Howdy, mate!&quot;</span> cr <span class="p">;</span>
+<span class="p">|</span> ok
+<span class="p">|</span>&gt;
+<span class="p">|</span> ok
+<span class="p">|</span>&gt; hi
+<span class="p">|</span>hi
+<span class="p">|</span>Howdy, mate!
+<span class="p">|</span> ok
+<span class="p">|</span>&gt;
+<span class="p">|</span> ok
+<span class="p">|</span>&gt; -tnredir
+<span class="p">|</span>-tnredir
+</pre></div>
+</div>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">serial terminal:</span>
+<span class="go">|Stop Telnet Server !  ok</span>
+<span class="go">|&gt; hi</span>
+<span class="go">|Howdy, mate!</span>
+<span class="go">| ok</span>
+<span class="go">|&gt;</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+        </div>
+        <div class="sidebar">
+          <h3>Table Of Contents</h3>
+          <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../UG/amforth_user.html">User’s Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../TG.html">Technical Guide</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../Cookbook.html">Cookbook</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="Boards.html">Popular Boards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="General.html">General Code Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Programming.html">Programming and Debugging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware.html">Hardware Modules (Generic)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="Hardware-AVR.html">Hardware Modules (AVR)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-MSP430.html">Hardware Modules (MSP430)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-RISC-V.html">Hardware Modules (RISC-V)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Hardware-ARM.html">Hardware Modules (ARM)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../Opinion/Opinion.html">Opinion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Recognizers.html">Recognizers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../refcard.html">Reference Card (outdated! from release 5.5)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+
+          <h3 style="margin-top: 1.5em;">Search</h3>
+          <form class="search" action="../../search.html" method="get">
+            <input type="text" name="q" />
+            <input type="submit" value="Go" />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+          </form>
+          <p class="searchtip" style="font-size: 90%">
+            Enter search terms or a module, class or function name.
+          </p>
+          <div class="shariff" data-lang="en" data-theme="white" data-backend-url="../../_static/shariff"></div>
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <div class="footer-wrapper">
+      <div class="footer">
+        <div class="left">
+            <a href="../../_sources/TG/recipes/Telnet.rst.txt"
+               rel="nofollow">Show Source</a>
+        </div>
+
+
+        <div>
+<a href="mailto:amforth-devel@lists.sourceforge.net">amforth-devel@lists.sourceforge.net</a>
+        </div>
+        <div class="clearer"></div>
+
+        <div class="right">Hosted by <a
+    href="http://sourceforge.net/projects/amforth">
+    <img src="http://sflogo.sourceforge.net/sflogo.php?group_id=179967&type=10"
+    width="80" height="15" border="0"
+    alt="Get amforth: Forth for AVR ATmega at SourceForge.net." />
+    </a>
+        </div>
+
+        </div>
+        <div class="clearer"></div>
+      </div>
+    </div>
+
+    <script src="/_static/shariff.complete.js"></script>
+
+  </body>
+</html>
